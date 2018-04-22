@@ -195,6 +195,24 @@ function to_console($data, $crypto_currency) {
 	print "TOTAL TRANSACTIONS:	" . FIAT . " " . $data['balance_fiat'] . "	$crypto_currency " . $data['balance_mining_fiat'] . "\n\n";
 }
 
+function to_csv($data, $crypto_currency) {
+	print "Date of transaction;Mining;Currency;Average value for 1 ${crypto_currency} in " . FIAT ." on date of transaction;Transaction volume in ${crypto_currency};Change in " . FIAT . "\n";
+	
+	for ($i = 0, $m = sizeof($data['transactions']); $i < $m; $i++) {
+		$cols = [];
+		$row = $data['transactions'][$i];
+		
+		$cols[] = $row['day'];
+		$cols[] = $row['is_mining'] ? 'YES' : 'NO';
+		$cols[] = $crypto_currency;
+		$cols[] = str_replace(".", ",", $row['avg']);
+		$cols[] = str_replace(".", ",", $row['value_crypto'] ) . ($row['win_loss'] == '-' ? '-' : '');
+		$cols[] = str_replace(".", ",", $row['value_fiat']);
+
+		print implode($cols, ";") . "\n";
+	}
+}
+
 // no fancy hashmaps, no classes, just functions and duplicate code
 $electrum = electrum($electrum_export);
 $etherscan = etherscan($etherscan_export);
@@ -203,5 +221,23 @@ $historical_ethereum_prices = coinmarketcap($coinmarketcap_ethereum);
 
 $normalized_bitcoin = build_data($electrum, $historical_bitcoin_prices);
 $normalized_ethereum = build_data($etherscan, $historical_ethereum_prices);
-to_console($normalized_bitcoin, 'BTC');
-to_console($normalized_ethereum, 'ETH');
+
+$mode = 'console';
+
+if (sizeof($argv) > 1) {
+	if ($argv[1] == 'csv') {
+		$mode = 'csv';
+	}
+}
+
+if ($mode == 'console') {
+	to_console($normalized_bitcoin, 'BTC');
+	to_console($normalized_ethereum, 'ETH');
+}
+else if ($mode === 'csv') {
+	to_csv($normalized_bitcoin, 'BTC');
+	to_csv($normalized_ethereum, 'ETH');
+}
+else {
+	die("Unknown mode " . $mode);
+}
